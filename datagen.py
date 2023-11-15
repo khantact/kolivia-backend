@@ -654,6 +654,37 @@ small_actions = [
 ]
 
 
+def generateDates() -> dict: 
+    '''
+    generates a dictionary dates with keys 'days' and 'months'
+    each key maps to another dictionary specifically for storing different representations of the days and months as full words, 3 letter abbreviations, and numbers (still in str)
+
+    preview: 
+        dates = {'days': {'daysOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], 'days3LetVer': ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'], 'daysAbbrev': ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']}, 'months': {'months': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], 'months3LetVer': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'], 'monthNums': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']}}
+    '''
+    dates = {}
+    daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+    days3LetVer = ["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"]
+    daysAbbrev = ["M", "T", "W", "Th", "F", "Sa", "Su"]
+    daysDict = {"daysOfWeek": daysOfWeek, "days3LetVer": days3LetVer, "daysAbbrev": daysAbbrev}
+    dates["days"] = daysDict
+
+    months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+    months3LetVer = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sept", "Oct", "Nov", "Dec"]
+    monthNums = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", '11', '12'] #can all be converted to ints 
+    monthsDict = {"months": months, "months3LetVer": months3LetVer, "monthNums": monthNums}
+    dates["months"] = monthsDict
+
+    return dates
+
+'''
+need date phases like 
+- "on {month} {dayOfTheWeek}"
+- "on {dayOfTheWeek}"
+
+
+'''
+
 def popTimes():
     times = []
     for x in ["AM", "PM"]:
@@ -687,6 +718,8 @@ def createAppointmentPrompt(time, action, trainOrEval):
         f"Set a reminder to {action} at {time}",
         f"Arrange an appointment with me at {time} to {action}",
         f"Mark my calendar to {action} at {time}",
+        f"I'd like to {action} at {time}", #implicit command - siri responds to this
+        
     ]
     eval_appoints = [
         f"Secure a timeslot for {action} at {time}",
@@ -709,6 +742,7 @@ def createAppointmentPrompt(time, action, trainOrEval):
         f"Book an appointment to {action} at {time}",
         f"Schedule a reminder for {action} at {time}",
         f"Arrange a conference at {time} about {action}",
+        f"I'm going to {action} at {time}", #implicit command - siri responds to this
     ]
     different_appointment_formats = [
         f"Set up a meeting for {time} to {action}",
@@ -743,6 +777,7 @@ def createAppointmentPrompt(time, action, trainOrEval):
 def populateSmallData():
     prompts = []
     times = popTimes()
+    dates = generateDates()
     print("running...")
     for i in range(10000):
         time = random.choice(times)
@@ -758,6 +793,7 @@ def main():
     prompts = []
     evalPrompts = []
     times = popTimes()
+    dates = generateDates()
     print("running...")
     for i in range(40000):
         time = random.choice(times)
