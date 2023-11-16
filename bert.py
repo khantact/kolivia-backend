@@ -27,7 +27,7 @@ def loadData(path):
     with open(path, "r") as f:
         data = f.read()
         for line in data.split("\n"):
-            toRet.append({"text": line, "label": "0"})
+            toRet.append({"text": line, "label": 0})
     return toRet
 
 
