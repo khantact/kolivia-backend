@@ -659,14 +659,15 @@ def generateDates() -> dict:
     generates a dictionary dates with keys 'days' and 'months'
     each key maps to another dictionary specifically for storing different representations of the days and months as full words, 3 letter abbreviations, and numbers (still in str)
 
-    preview: 
+    preview: (changed everything in lowercase for easier identification) 
         dates = {'days': {'daysOfWeek': ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], 'days3LetVer': ['Mon', 'Tues', 'Wed', 'Thurs', 'Fri', 'Sat', 'Sun'], 'daysAbbrev': ['M', 'T', 'W', 'Th', 'F', 'Sa', 'Su']}, 'months': {'months': ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'], 'months3LetVer': ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sept', 'Oct', 'Nov', 'Dec'], 'monthNums': ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12']}}
     '''
     dates = {}
     daysOfWeek = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
     days3LetVer = ["Mon", "Tues", "Wed", "Thurs", "Fri", "Sat", "Sun"]
-    daysAbbrev = ["M", "T", "W", "Th", "F", "Sa", "Su"]
-    daysDict = {"daysOfWeek": daysOfWeek, "days3LetVer": days3LetVer, "daysAbbrev": daysAbbrev}
+    # daysAbbrev = ["m", "t", "w", "th", "f", "sa", "su"]
+    # daysDict = {"daysOfWeek": daysOfWeek, "days3LetVer": days3LetVer, "daysAbbrev": daysAbbrev}
+    daysDict = {"daysOfWeek": daysOfWeek, "days3LetVer": days3LetVer}
     dates["days"] = daysDict
 
     months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
@@ -677,13 +678,76 @@ def generateDates() -> dict:
 
     return dates
 
-'''
-need date phases like 
-- "on {month} {dayOfTheWeek}"
-- "on {dayOfTheWeek}"
+def generateDatePhrase(dates: dict) -> str:
+    '''
+    for generating date phrases such as
+    - "on {dayOfTheWeek}" -- (e.g., "on Monday")
+    - "on {dayOfTheWeek}, {month} {date}" -- (e.g., "on Monday, January 1st")
+    - "on {month} {date}" -- (e.g., "on January 1st")
+    - "on the {date} of {month} -- (e.g., "on the 1st of January")
+    - "on {dayOfTheWeek} the {date} of {month} -- (e.g., "on Monday the 1st of January")
+
+    - "for {dayOfTheWeek}" -- (e.g., "for Monday")
+    - "for {month} {date}" -- (e.g., "for January 1st")
+    - "for" {dayOfTheWeek}, {month} {date}" -- (e.g., "for Monday, January 1st")
+    - "for this {dayOfTheWeek}" -- (e.g., "for this Monday")
+    - "for next {dayOfTheWeek}" -- (e.g., "for next Monday")
+
+    '''
+    monthDictKey = random.choice(['months', 'months3LetVer', 'monthNums']) #randomly choose month format
+    month = random.choice(dates["months"][monthDictKey]) #randomly choose month in chosen format
+    if month.isdigit(): #if month is in number format
+        month = str(int(month)) # convert to int and then back to str to remove leading 0
+    # dayDictKey = random.choice(['daysOfWeek', 'days3LetVer', 'daysAbbrev']) #randomly chose day format
+    dayDictKey = random.choice(['daysOfWeek', 'days3LetVer']) #randomly chose day format
+    day = random.choice(dates["days"][dayDictKey]) #randomyl choose day of the week in chosen format
+
+    #need to outline conditionals for constructing valid date
+    have31Days = ["january", "march", "may", "july", "august", "october", "december", "01", "03", "05", "07", "08", "10", "12", "jan", "mar", "may", "jul", "aug", "oct", "dec"]
+    have30Days = ["april", "june", "september", "november", "04", "06", "09", "11", "apr", "jun", "sept", "nov"]
+    date = 0
+    # print(month)
+    if month in have31Days:
+        date = random.randint(1, 31)
+    elif month in have30Days:
+        date = random.randint(1, 30)
+    else:
+        date = random.randint(1, 28)
+
+    #need to reformat str of date to include "st", "nd", "rd", or "th" at the end
+    if month.isdigit() == False: #if month is in number format
+        if date > 3 and date < 21:
+            date = str(date) + "th"
+        else:
+            remainder = date % 10
+            if remainder == 1:
+                date = str(date) + "st"
+            elif remainder == 2:
+                date = str(date) + "nd"
+            elif remainder == 3:
+                date = str(date) + "rd"
+            else:
+                date = str(date) + "th"
+    
+    #randomly choose a phrase format
+    '''
+    - "on {dayOfTheWeek}, {month} {date}" -- (e.g., "on Monday, January 1st")
+    - "on {month} {date}" -- (e.g., "on January 1st")
+    '''
+    phrases = [f"on {day}",
+               f"on {day}, {month} {date}" if month.isdigit() == False else f"on {day}, {month}/{date}",
+               f"on {month}/{date}" if month.isdigit() else f"on {month} {date}", #inline ifs reformat the str if months are also in number format
+               f"on the {date} of {month}" if month.isdigit() == False else f"on the {date} of {dates['months'][random.choice(['months', 'months3LetVer'])][int(month)-1]}", 
+               f"on {day} the {date} of {month}" if month.isdigit() == False else f"on {day} the {date} of {dates['months'][random.choice(['months', 'months3LetVer'])][int(month)-1]}", 
+               f"for {day}", 
+               f"for this {day}", 
+               f"for next {day}", 
+               f"for {month}/{date}" if month.isdigit() else f"for {month} the {date}",
+               f"for {day}, {month}/{date}" if month.isdigit() else f"for {day}, {month} {date}"]
+    return random.choice(phrases)
 
 
-'''
+
 
 def popTimes():
     times = []
@@ -695,8 +759,8 @@ def popTimes():
                 times.append(str(i) + ":" + str(j) + x)
     return times
 
-
-def createAppointmentPrompt(time, action, trainOrEval):
+# TODO: will need to add cases where prompts include durations of times
+def createAppointmentPrompt(time, action, trainOrEval): 
     appointment_formats = [
         f"Schedule an appointment to {action} at {time}",
         f"Set up a meeting at {time} to {action}",
@@ -714,7 +778,7 @@ def createAppointmentPrompt(time, action, trainOrEval):
         f"Reschedule a commitment to {time} to {action}",
         f"Fix a meeting to {action} at {time}",
         f"Add an event to my calendar at {time} to {action}",
-        f"Block time to {action} on {time}",
+        f"Block time to {action} at {time}",
         f"Set a reminder to {action} at {time}",
         f"Arrange an appointment with me at {time} to {action}",
         f"Mark my calendar to {action} at {time}",
@@ -766,18 +830,24 @@ def createAppointmentPrompt(time, action, trainOrEval):
         f"Plan a meeting to {action} at {time}",
         f"Arrange a conference for {action} at {time}",
     ]
+    datesDict = generateDates()
+    datePhrase = generateDatePhrase(datesDict)
+    addDatePhrase = random.choice([True, False]) #boolean for deciding when to add date phrase to appointment prompt
+    chosenFormat = "" 
     if trainOrEval == 0:
-        return random.choice(eval_appoints)
+        chosenFormat = random.choice(eval_appoints)
     elif trainOrEval == 1:
-        return random.choice(appointment_formats)
+        chosenFormat = random.choice(appointment_formats)
     else:
-        return random.choice(different_appointment_formats)
+        chosenFormat = random.choice(different_appointment_formats)
+    if addDatePhrase: #add date phrase if boolean is true
+        chosenFormat = chosenFormat + " " + datePhrase
+    return chosenFormat
 
 
 def populateSmallData():
     prompts = []
     times = popTimes()
-    dates = generateDates()
     print("running...")
     for i in range(10000):
         time = random.choice(times)
@@ -793,7 +863,6 @@ def main():
     prompts = []
     evalPrompts = []
     times = popTimes()
-    dates = generateDates()
     print("running...")
     for i in range(40000):
         time = random.choice(times)
@@ -816,4 +885,6 @@ def main():
             f.write("\n")
 
 # main()
-populateSmallData()
+# populateSmallData()
+dates = generateDates()
+print(createAppointmentPrompt("12:00PM", "go to a pottery painting class", 1))
