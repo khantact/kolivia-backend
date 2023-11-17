@@ -15,12 +15,6 @@ elif torch.backends.mps.is_available():
 else:
     device = "cpu"
 
-modelname = "distilbert-base-cased"
-tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=True)
-model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=2).to(
-    device
-)
-
 
 def loadData(path):
     """Loads data from a directory and labels it
@@ -82,27 +76,10 @@ def getDataset(
     return data
 
 
-smallDataset = getDataset(
-    path="data/train_data/",
-    tokenizer=tokenizer,
-    percent=0.05,
-)
-trainDataset = getDataset(
-    path="data/train_data/",
-    tokenizer=tokenizer,
-    percent=0.25,
-)
-evalDataset = getDataset(path="data/eval_data/", tokenizer=tokenizer)
-
-
 def model_init():
     return AutoModelForSequenceClassification.from_pretrained(
         modelname, num_labels=2
     ).to(device)
-
-
-# Uses accuracy is the metric at eval steps
-metric = evaluate.load("accuracy")
 
 
 def compute_metrics(eval_pred):
@@ -111,62 +88,86 @@ def compute_metrics(eval_pred):
     return metric.compute(predictions=predictions, references=labels)
 
 
-# Set some initial parameters
-batch_size = 20
-args = TrainingArguments(
-    f"{modelname}-finetuned-appointment-classifications",
-    evaluation_strategy="epoch",
-    save_strategy="epoch",
-    learning_rate=2e-5,
-    per_device_train_batch_size=batch_size,
-    per_device_eval_batch_size=batch_size,
-    num_train_epochs=2,
-    weight_decay=0.01,
-)
+def runModelTraining():
+    modelname = "distilbert-base-cased"
+    tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=True)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        modelname, num_labels=2
+    ).to(device)
 
-# Set up a trainer with less data
-trainer = Trainer(
-    model_init=model_init,
-    args=args,
-    train_dataset=smallDataset,
-    eval_dataset=evalDataset,
-    tokenizer=tokenizer,
-    compute_metrics=compute_metrics,
-)
-print("finding hyperparams")
-# Find the best hyperparameters over 10 runs
-best_run = trainer.hyperparameter_search(
-    n_trials=2, direction="maximize", backend="optuna"
-)
+    smallDataset = getDataset(
+        path="data/train_data/",
+        tokenizer=tokenizer,
+        percent=0.05,
+    )
+    trainDataset = getDataset(
+        path="data/train_data/",
+        tokenizer=tokenizer,
+        percent=0.25,
+    )
+    evalDataset = getDataset(path="data/eval_data/", tokenizer=tokenizer)
 
-model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=2).to(
-    device
-)
-trainer = Trainer(
-    model=model,
-    args=args,
-    train_dataset=trainDataset,
-    eval_dataset=evalDataset,
-    tokenizer=tokenizer,
-    compute_metrics=compute_metrics,
-)
+    # Uses accuracy is the metric at eval steps
+    metric = evaluate.load("accuracy")
 
-for n, v in best_run.hyperparameters.items():
-    setattr(trainer.args, n, v)
-trainer.train()
+    # Set some initial parameters
+    batch_size = 20
+    args = TrainingArguments(
+        f"{modelname}-finetuned-appointment-classifications",
+        evaluation_strategy="epoch",
+        save_strategy="epoch",
+        learning_rate=2e-5,
+        per_device_train_batch_size=batch_size,
+        per_device_eval_batch_size=batch_size,
+        num_train_epochs=2,
+        weight_decay=0.01,
+    )
 
-testDataset = getDataset("data/train_data/", tokenizer=tokenizer, tokenize=False)
+    # Set up a trainer with less data
+    trainer = Trainer(
+        model_init=model_init,
+        args=args,
+        train_dataset=smallDataset,
+        eval_dataset=evalDataset,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
+    )
+    print("finding hyperparams")
+    # Find the best hyperparameters over 10 runs
+    best_run = trainer.hyperparameter_search(
+        n_trials=2, direction="maximize", backend="optuna"
+    )
 
-print("evaluating")
-task_evaluator = evaluate.evaluator("text-classification")
-model.eval()
-model.to("cpu")
-results = task_evaluator.compute(
-    model_or_pipeline=model,
-    tokenizer=tokenizer,
-    data=testDataset,
-    metric=evaluate.combine(["accuracy", "recall", "precision", "f1"]),
-    label_mapping={"LABEL_0": 0.0, "LABEL_1": 1.0},
-)
-print(results)
-trainer.save_model(output_dir="model/distilbert-classifier")
+    model = AutoModelForSequenceClassification.from_pretrained(
+        modelname, num_labels=2
+    ).to(device)
+    trainer = Trainer(
+        model=model,
+        args=args,
+        train_dataset=trainDataset,
+        eval_dataset=evalDataset,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
+    )
+
+    for n, v in best_run.hyperparameters.items():
+        setattr(trainer.args, n, v)
+    trainer.train()
+
+
+def evaluateModel():
+    testDataset = getDataset("data/train_data/", tokenizer=tokenizer, tokenize=False)
+
+    print("evaluating")
+    task_evaluator = evaluate.evaluator("text-classification")
+    model.eval()
+    model.to("cpu")
+    results = task_evaluator.compute(
+        model_or_pipeline=model,
+        tokenizer=tokenizer,
+        data=testDataset,
+        metric=evaluate.combine(["accuracy", "recall", "precision", "f1"]),
+        label_mapping={"LABEL_0": 0.0, "LABEL_1": 1.0},
+    )
+    print(results)
+    trainer.save_model(output_dir="model/distilbert-classifier")
