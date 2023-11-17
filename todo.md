@@ -1,0 +1,1 @@
+ask how to train a pretrained model

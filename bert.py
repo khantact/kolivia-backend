@@ -17,15 +17,35 @@ else:
 
 modelname = "distilbert-base-cased"
 tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=True)
-model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=2).to(device)
+model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=2).to(
+    device
+)
 
 
 def loadData(path):
+    """Loads data from a directory and labels it
+
+    Args:
+        path (str): path to directory
+
+    Returns:
+        toRet: list of dictionaries with text and label
+    """
     toRet = []
-    with open(path, "r", encoding='utf-8') as f:
-        data = f.read()
-        for line in data.split("\n"):
-            toRet.append({"text": line, "label": 0})
+    appointments = path + "appointments.txt"
+    questions = path + "questions.txt"
+    weather = path + "weather.txt"
+    fileList = [appointments, questions, weather]
+    for files in fileList:
+        with open(files, "r", encoding="utf-8") as f:
+            data = f.read()
+            for line in data.split("\n"):
+                if files == appointments:
+                    toRet.append({"text": line, "label": 0})
+                elif files == questions:
+                    toRet.append({"text": line, "label": 1})
+                elif files == weather:
+                    toRet.append({"text": line, "label": 2})
     return toRet
 
 
@@ -53,23 +73,32 @@ def getDataset(
         if tokenizer is None:
             print("Pass a tokenizer")
             return
-        data = data.map(lambda examples: tokenizer(examples["text"], return_tensors="pt", padding=True, truncation=True), batched=True).with_format("torch")
+        data = data.map(
+            lambda examples: tokenizer(
+                examples["text"], return_tensors="pt", padding=True, truncation=True
+            ),
+            batched=True,
+        ).with_format("torch")
     return data
 
 
 smallDataset = getDataset(
-    path="kolivia-backend/data/appointments/appointments.txt", tokenizer=tokenizer, percent=0.05
-) 
+    path="kolivia-backend/data/train_data/",
+    tokenizer=tokenizer,
+    percent=0.05,
+)
 trainDataset = getDataset(
-    path="kolivia-backend/data/appointments/appointments.txt", tokenizer=tokenizer, percent=0.25
+    path="kolivia-backend/data/train_data/",
+    tokenizer=tokenizer,
+    percent=0.25,
 )
-evalDataset = getDataset(
-    path="kolivia-backend/data/appointments/appointments.txt", tokenizer=tokenizer
-)
+evalDataset = getDataset(path="kolivia-backend/data/eval_data/", tokenizer=tokenizer)
 
 
 def model_init():
-    return AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=2).to(device)
+    return AutoModelForSequenceClassification.from_pretrained(
+        modelname, num_labels=2
+    ).to(device)
 
 
 # Uses accuracy is the metric at eval steps
@@ -110,7 +139,9 @@ best_run = trainer.hyperparameter_search(
     n_trials=2, direction="maximize", backend="optuna"
 )
 
-model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=2).to(device)
+model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=2).to(
+    device
+)
 trainer = Trainer(
     model=model,
     args=args,
@@ -124,9 +155,8 @@ for n, v in best_run.hyperparameters.items():
     setattr(trainer.args, n, v)
 trainer.train()
 
-testDataset = getDataset(
-    "data/train_data/appointments.txt", tokenizer=tokenizer, tokenize=False
-)
+testDataset = getDataset("data/train_data/", tokenizer=tokenizer, tokenize=False)
+
 print("evaluating")
 task_evaluator = evaluate.evaluator("text-classification")
 model.eval()
@@ -139,4 +169,4 @@ results = task_evaluator.compute(
     label_mapping={"LABEL_0": 0.0, "LABEL_1": 1.0},
 )
 print(results)
-trainer.save_model("distilbert-for-appointment-classification")
+trainer.save_model(output_dir="model/distilbert-classifier")
