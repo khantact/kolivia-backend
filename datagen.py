@@ -856,6 +856,126 @@ def generateDatePhrase(dates: dict) -> str:
     return random.choice(phrases)
 
 
+def generateWeatherPhrasePrompt(dataSet: int):
+    """
+    generates a weather phrase prompt such as
+    - "what's the weather like today?"
+    - "what's the weather like tomorrow?"
+    - "what's the weather like on {dayOfTheWeek}?"
+    - "what's the weather like on {month} {date}?"
+    - "what's the weather like on {dayOfTheWeek}, {month} {date}?"
+    - "what's the weather like for {dayOfTheWeek}?"
+    - "what's the weather like for {month} {date}?"
+    - "what's the weather like for {dayOfTheWeek}, {month} {date}?"
+    - "what's the weather like for this {dayOfTheWeek}?"
+    - "what's the weather like for next {dayOfTheWeek}?"
+    - "what's the weather like for {month}/{date}?"
+    - "what's the weather like for {dayOfTheWeek}, {month}/{date}?"
+    """
+    dates = generateDates()
+    datePhrase = generateDatePhrase(dates)
+    weatherPhrase1 = [
+        "what's the weather like today?",
+        "Can you tell me about today's weather?",
+        "How's the weather looking right now?",
+        "Is it going to rain today?",
+        "What's the forecast for today?",
+        "Could you give me an update on today's weather?",
+        "What should I expect from the weather today?",
+        "Any idea about today's weather conditions?",
+        "How's the climate shaping up for today?",
+        "Will it be sunny or cloudy today?",
+        "Do you have information on today's weather patterns?",
+        "Can you inform me about the atmospheric conditions today?",
+        "What's the outlook for the weather today?",
+        "Any news on today's weather forecast?",
+        "Could you let me know what the sky looks like today?",
+        "Is there any precipitation expected today?",
+        "Can you provide details on today's weather report?",
+        "How's the temperature today?",
+        "What's the weather situation for today?",
+        "Will there be any storms today?",
+        "Can you share the weather updates for today?",
+        "Do you have the latest on today's weather forecast?",
+        "Is there a chance of snow or rain today?",
+        "How's the weather shaping up for today's plans?",
+        "What's the atmospheric outlook for today?",
+        "Could you check and let me know about today's weather?",
+        "Any idea if it's going to be windy today?",
+        "What does today's weather map show?",
+        "Can you inform me about the current weather conditions today?",
+        "How should I prepare for today's weather?",
+        "Is it going to be a hot or cold day today?",
+        "What can you tell me about the weather today?",
+        "Any updates on today's weather situation?",
+        "How's the weather forecast for today looking?",
+        "What's the temperature range for today?",
+        "Will there be any weather-related disruptions today?",
+        "Can you provide a summary of today's weather outlook?",
+        "What's the word on today's weather?",
+        "Is there any chance of fog or mist today?",
+        "Could you give me a heads up on what to expect weather-wise today?"
+        f"what's the weather like tomorrow?",
+        f"what's the weather like {datePhrase}?",
+        f"what's the weather like for {datePhrase}?",
+    ]
+    weatherPhrase2 = [
+        "What's the weather like right now?",
+        "Any updates on the current weather conditions?",
+        "Can you give me a real-time weather report?",
+        "Is there any precipitation in the forecast?",
+        "How's the temperature at this moment?",
+        "What's the immediate weather outlook?",
+        "Could you describe the current atmospheric conditions?",
+        "Is there any chance of rain or snow in the next hour?",
+        "Can you provide a quick weather summary for the next few hours?",
+        "How should I dress for the current weather?",
+        "What's the ongoing weather situation?",
+        "Any alerts or warnings for the current weather?",
+        "What's the atmospheric pressure right now?",
+        "Can you update me on the latest weather developments?",
+        "How is the weather evolving at this instant?",
+        "Is the wind speed significant at the moment?",
+        "What's the visibility like right now?",
+        "Can you share the current weather patterns?",
+        "Is there any extreme weather expected shortly?",
+        "How's the weather expected to change in the next hour?",
+        f"what's the weather like tomorrow?",
+        f"what's the weather like {datePhrase}?",
+        f"what's the weather like for {datePhrase}?",
+    ]
+    weatherPhrase3 = [
+        "What's the weather like for the upcoming weekend?",
+        "Can you provide a forecast for the next seven days?",
+        "Any insights into the weather for the rest of the week?",
+        "How's the weather expected to change tomorrow?",
+        "Could you give me an overview of the weather in the coming days?",
+        "What's the long-term weather outlook?",
+        "Any special weather considerations for the next few days?",
+        "How's the weather shaping up for the weekend?",
+        "Can you tell me about the weather conditions for the next month?",
+        "What's the extended forecast like?",
+        "Any significant weather events anticipated in the near future?",
+        "How should I prepare for the weather in the coming weeks?",
+        "Can you give me an idea of the weather trends in the upcoming month?",
+        "What's the expected weather pattern for the next fortnight?",
+        "Could you provide a summary of the weather over the next month?",
+        "Any unusual weather phenomena expected in the next few weeks?",
+        "How's the weather looking for outdoor activities next week?",
+        "What's the general weather trend for the upcoming season?",
+        "Can you give me a heads up on any weather anomalies expected soon?",
+        "What's the weather forecast like for the next quarter?",
+        f"what's the weather like tomorrow?",
+        f"what's the weather like {datePhrase}?",
+        f"what's the weather like for {datePhrase}?",
+    ]
+    if dataSet == 1:
+        return random.choice(weatherPhrase1)
+    elif dataSet == 2:
+        return random.choice(weatherPhrase2)
+    return random.choice(weatherPhrase3)
+
+
 def popTimes():
     times = []
     for x in ["AM", "PM"]:
@@ -954,7 +1074,7 @@ def createAppointmentPrompt(time, action, trainOrEval):
     return chosenFormat
 
 
-def populateSmallData():
+def populateSmallApptData():
     prompts = []
     times = popTimes()
     print("running...")
@@ -962,7 +1082,17 @@ def populateSmallData():
         time = random.choice(times)
         action = random.choice(small_actions)
         prompts.append(createAppointmentPrompt(time, action, 2))
-    with open("data/small_data/appointments.txt", "w") as f:
+    with open("data/train_data/appointments.txt", "w") as f:
+        for prompt in prompts:
+            f.write(prompt)
+            f.write("\n")
+
+
+def populateWeatherData(num: int, filePath: str, dataSet: int):
+    prompts = []
+    for i in range(num):
+        prompts.append(generateWeatherPhrasePrompt(dataSet))
+    with open(filePath, "w") as f:
         for prompt in prompts:
             f.write(prompt)
             f.write("\n")
@@ -983,18 +1113,21 @@ def main():
         action = random.choice(eval_actions)
         evalPrompts.append(createAppointmentPrompt(time, action, 0))
 
-    with open("data/appointments/appointments.txt", "w") as f:
+    with open("data/test_data/appointments.txt", "w") as f:
         for prompt in prompts:
             f.write(prompt)
             f.write("\n")
 
-    with open("data/eval_appointments/appointments.txt", "w") as f:
+    with open("data/eval_data/appointments.txt", "w") as f:
         for prompt in evalPrompts:
             f.write(prompt)
             f.write("\n")
 
 
-main()
-# populateSmallData()
+# main()
+populateWeatherData(10000, "data/train_data/weather.txt", 1)
+populateWeatherData(40000, "data/test_data/weather.txt", 2)
+populateWeatherData(40000, "data/eval_data/weather.txt", 3)
+populateSmallApptData()
 # dates = generateDates()
 # print(createAppointmentPrompt("12:00PM", "go to a pottery painting class", 1))
