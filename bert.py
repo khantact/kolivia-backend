@@ -83,16 +83,16 @@ def getDataset(
 
 
 smallDataset = getDataset(
-    path="kolivia-backend/data/train_data/",
+    path="data/train_data/",
     tokenizer=tokenizer,
     percent=0.05,
 )
 trainDataset = getDataset(
-    path="kolivia-backend/data/train_data/",
+    path="data/train_data/",
     tokenizer=tokenizer,
     percent=0.25,
 )
-evalDataset = getDataset(path="kolivia-backend/data/eval_data/", tokenizer=tokenizer)
+evalDataset = getDataset(path="data/eval_data/", tokenizer=tokenizer)
 
 
 def model_init():
