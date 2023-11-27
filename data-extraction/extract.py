@@ -6,6 +6,7 @@ nlp = spacy.load("en_core_web_trf") #loads the pretrained model
 def createDate(dateString="") -> list:
     '''
     Takes in a string and returns a date as a list formatted as [month, day, year]
+    dateStrings should have been parsed out of the original user input by spacy and identified as a DATE entity
     '''
     dateList = []
     if dateString == "":
@@ -14,19 +15,32 @@ def createDate(dateString="") -> list:
         dateList[1] = int(today.strftime('%m'))
         dateList[2] = int(today.strftime('%Y'))
     else: #TODO: need to handle when dateString is not empty and has different formats
-        pass
+        dateStringAsList = dateString.split() #make the dateString a list
+        # check if spacy can identify dates formatted as MM/DD/YYYY 
     return dateList
 
 def extractApptData(text: str, model: spacy.Language) -> dict:
     '''
     Extracts appointment data from text and organizes it into a dictionary with the following appointment data:
     - date
-    - time
-    - location
+    - time (optional)
+    - location (optional)
     - reason
     '''
     apptData = {}
     doc = model(text)
+    #get all the entities first that dates and times
+    dates = []
+    apptData['time'] = "" #empty value for in case a time isn't included
+    for ent in doc.ents:
+        if ent.label_ == "TIME":
+            apptData['time'] = ent #need to make sure this value is saved as a str and not just some spacy entity
+        if ent.label_ == "DATE":
+            dates.append(ent)
+
+    #TODO: need to separate months from days and handle different formatting
+    
+    return apptData
 
 def extractWeatherData(text: str, model: spacy.Language) -> list:
     ''' 
