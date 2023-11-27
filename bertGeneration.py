@@ -16,16 +16,18 @@ elif torch.backends.mps.is_available():
 else:
     device = "cpu"
 
-modelname = "distilbert-base-cased"
-tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=True)
-model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=3).to(
-    device
-)
+# modelname = "distilbert-base-cased"
+# tokenizer = AutoTokenizer.from_pretrained(modelname, use_fast=True)
+# model = AutoModelForSequenceClassification.from_pretrained(modelname, num_labels=3).to(
+#     device
+# )
 
 
 def loadData(path):
     """Loads data from a directory and labels it
-
+        Appointments = 0
+        Questions = 1
+        Weather = 2
     Args:
         path (str): path to directory
 
@@ -83,17 +85,17 @@ def getDataset(
     return data
 
 
-smallDataset = getDataset(
-    path="data/train_data/",
-    tokenizer=tokenizer,
-    percent=0.05,
-)
-trainDataset = getDataset(
-    path="data/train_data/",
-    tokenizer=tokenizer,
-    percent=0.25,
-)
-evalDataset = getDataset(path="data/eval_data/", tokenizer=tokenizer)
+# smallDataset = getDataset(
+#     path="data/train_data/",
+#     tokenizer=tokenizer,
+#     percent=0.05,
+# )
+# trainDataset = getDataset(
+#     path="data/train_data/",
+#     tokenizer=tokenizer,
+#     percent=0.25,
+# )
+# evalDataset = getDataset(path="data/eval_data/", tokenizer=tokenizer)
 
 
 def model_init():
@@ -156,38 +158,85 @@ def compute_metrics(eval_pred):
 #     setattr(trainer.args, n, v)
 # trainer.train()
 # load pretrained model
+
 model = AutoModelForSequenceClassification.from_pretrained(
-    "distilbert-base-cased-finetuned-appointment-classifications/run-1/checkpoint-68",
+    "distilbert-base-cased-finetuned-appointment-classifications/checkpoint-1302",
     num_labels=3,
 ).to(device)
 
-# tokenizer = AutoTokenizer.from_pretrained(
-#     "distilbert-base-cased-finetuned-appointment-classifications/run-1/checkpoint-68"
-# )
-testDataset = getDataset("data/train_data/", tokenizer=tokenizer, tokenize=False)
-
+tokenizer = AutoTokenizer.from_pretrained(
+    "distilbert-base-cased-finetuned-appointment-classifications/checkpoint-1302"
+)
+smallDataset = getDataset(
+    path="data/train_data/",
+    tokenizer=tokenizer,
+    percent=0.05,
+)
+trainDataset = getDataset(
+    path="data/train_data/",
+    tokenizer=tokenizer,
+    percent=0.25,
+)
+evalDataset = getDataset(path="data/eval_data/", tokenizer=tokenizer)
 
 print("evaluating")
-
 
 task_evaluator = evaluate.evaluator("text-classification")
 model.eval()
 model.to("cpu")
-metrics = evaluate.combine(
-    [
-        evaluate.load("accuracy"),
-        evaluate.load("precision"),
-        evaluate.load("recall"),
-        evaluate.load("f1"),
+# metrics
+metric1 = evaluate.load("accuracy")
+metric2 = evaluate.load("f1")
+metric3 = evaluate.load("precision")
+metric4 = evaluate.load("recall")
+
+
+def computeModelMetrics(eval_pred):
+    logits, labels = eval_pred
+    predictions = np.argmax(logits, axis=-1)
+    accuracy = metric1.compute(predictions=predictions, references=labels)["accuracy"]
+    f1 = metric2.compute(predictions=predictions, references=labels, average="micro")[
+        "f1"
     ]
+    precision = metric3.compute(
+        predictions=predictions, references=labels, average="micro"
+    )["precision"]
+    recall = metric4.compute(
+        predictions=predictions, references=labels, average="micro"
+    )["recall"]
+    return {"precision": precision, "recall": recall, "f1": f1, "accuracy": accuracy}
+
+
+batch_size = 5
+args = TrainingArguments(
+    f"finetuned-appointment-classifications",
+    evaluation_strategy="epoch",
+    save_strategy="epoch",
+    learning_rate=2e-5,
+    per_device_train_batch_size=batch_size,
+    per_device_eval_batch_size=batch_size,
+    num_train_epochs=2,
+    weight_decay=0.01,
 )
-# evaluate.combine(["accuracy", "recall", "precision", "f1"]),
-results = task_evaluator.compute(
-    model_or_pipeline=model,
+
+trainer = Trainer(
+    model,
+    args,
+    train_dataset=trainDataset,
+    eval_dataset=evalDataset,
     tokenizer=tokenizer,
-    data=testDataset,
-    metric=evaluate.combine(["accuracy", "recall", "precision", "f1"]),
-    label_mapping={"LABEL_0": 0.0, "LABEL_1": 1.0, "LABEL_2": 2.0},
+    compute_metrics=computeModelMetrics,
 )
-print(results)
-trainer.save_model(output_dir="model/distilbert-classifier-")
+predictions = trainer.predict(evalDataset)
+print(predictions)
+
+# evaluate.combine(["accuracy", "recall", "precision", "f1"]),
+# results = task_evaluator.compute(
+#     model_or_pipeline=model,
+#     tokenizer=tokenizer,
+#     data=testDataset,
+#     metric=evaluate.combine(["accuracy", "recall", "precision", "f1"]),
+#     label_mapping={"LABEL_0": 0.0, "LABEL_1": 1.0, "LABEL_2": 2.0},
+# )
+# print(results)
+trainer.save_model(output_dir="model/distilbert-classifier")
