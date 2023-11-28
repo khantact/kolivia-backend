@@ -9,7 +9,7 @@ def identifyDate(text:str, model: spacy.Language) -> dict:
     '''
     doc = model(text)
     dateInfo = []
-    
+
     #extracting only the relevant date related info from the text
     for ent in doc.ents:
         if ent.label_ == "DATE":
@@ -21,8 +21,13 @@ def identifyDate(text:str, model: spacy.Language) -> dict:
                 elif token.text in ent.text: #for when dates are formatted as words like day and month
                     dateStr += token.text + " "
                     shapeStr += token.shape_ + " "
-                if token.text not in ent.text and dateStr != "":
+                if token.text not in ent.text and dateStr != "": #then we know we've reached the end of the date
                     dateInfo.append([dateStr.strip(), shapeStr.strip()])
+    
+    #now that dateInfo has all the relevant date information, we need to reformat it into the dictionary
+    for date in dateInfo:
+        if date[0].isdigit(): #for dates formatted as digits
+            pass
     
 def createDate(dateString="") -> list:
     '''
@@ -38,6 +43,8 @@ def createDate(dateString="") -> list:
     else: #TODO: need to handle when dateString is not empty and has different formats
         dateStringAsList = dateString.split() #make the dateString a list
         # check if spacy can identify dates formatted as MM/DD/YYYY （it does)
+    
+
     return dateList
 
 def extractApptData(text: str, model: spacy.Language) -> dict:
