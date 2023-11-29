@@ -1,11 +1,14 @@
 import spacy
 from datetime import date
+from dateInfo import monthsofYear
 
 nlp = spacy.load("en_core_web_trf") #loads the pretrained model
 
 def identifyDate(text:str, model: spacy.Language) -> dict:
     '''
     Takes a string and extracts all date information from the string. This function assumes that the given string contains a date with at least a day of the week or a day of a month. If no other date information is given, the function will fill out the rest of the dictionary values with the current date information.
+
+    TODO: need to handle if invalid dates are given
     '''
     doc = model(text)
     dateInfo = []
@@ -25,8 +28,35 @@ def identifyDate(text:str, model: spacy.Language) -> dict:
                     dateInfo.append([dateStr.strip(), shapeStr.strip()])
     
     #now that dateInfo has all the relevant date information, we need to reformat it into the dictionary
-    for date in dateInfo:
+
+    dateDict = {}
+    for date in dateInfo: #how are dates formmated in dateInfo? date var should be list of [date, shape]
         if date[0].isdigit(): #for dates formatted as digits
+            monthDigits = ""
+            for aChar in date:
+                if aChar != "/": 
+                    monthDigits += aChar
+            monthDigits = int(monthDigits)
+            dateDict['month'] = [monthDigits] #TODO: need to populate value list with other forms of the month
+            
+            daysDigits = ""
+            for idx in range(date.find('/')+1):
+                if date[idx] != "/": #prevent from going into year part of the date
+                    daysDigits += date[idx]
+                else:
+                    secondSlash = idx
+            daysDigits = int(daysDigits)
+            dateDict['day'] = [daysDigits] #TODO: need to populate value list with other forms of the day
+            
+            if date.count('/') < 1: #then we know the date is formatted as MM/DD/YYYY
+                yearDigits = ""
+                for idx in range(secondSlash+1, len(date)):
+                    yearDigits += date[idx]
+                yearDigits = int(yearDigits)
+                dateDict['year'] = [yearDigits]
+            else: #then we know the date is formatted as MM/DD, we will assume they mean the current year
+                dateDict['year'] = [(date.today()).year] #gets current year from 
+        else: #for dates formatted as words
             pass
     
 def createDate(dateString="") -> list:
@@ -35,7 +65,7 @@ def createDate(dateString="") -> list:
     dateStrings should have been parsed out of the original user input by spacy and identified as a DATE entity
     '''
     dateList = []
-    if dateString == "":
+    if dateString == "": #might be useful for if user just gives a time but no date
         today = date.today()
         dateList[0] = int(today.strftime('%d'))
         dateList[1] = int(today.strftime('%m'))
