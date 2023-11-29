@@ -25,8 +25,34 @@ def identifyDate(text:str, model: spacy.Language) -> dict:
                     dateInfo.append([dateStr.strip(), shapeStr.strip()])
     
     #now that dateInfo has all the relevant date information, we need to reformat it into the dictionary
+
+    dateDict = {}
     for date in dateInfo:
         if date[0].isdigit(): #for dates formatted as digits
+            monthDigits = ""
+            for aChar in date:
+                if aChar != "/": 
+                    monthDigits += aChar
+            monthDigits = int(monthDigits)
+            dateDict['month'] = [monthDigits] #TODO: need to populate value list with other forms of the month
+            daysDigits = ""
+            for idx in range(date.find('/')+1):
+                if date[idx] != "/": #prevent from going into year part of the date
+                    daysDigits += date[idx]
+                else:
+                    secondSlash = idx
+            daysDigits = int(daysDigits)
+            dateDict['day'] = [daysDigits] #TODO: need to populate value list with other forms of the day
+            
+            if date.count('/') < 1: #then we know the date is formatted as MM/DD/YYYY
+                yearDigits = ""
+                for idx in range(secondSlash+1, len(date)):
+                    yearDigits += date[idx]
+                yearDigits = int(yearDigits)
+                dateDict['year'] = [yearDigits]
+            else: #then we know the date is formatted as MM/DD, we will assume they mean the current year
+                dateDict['year'] = [(date.today()).year] #gets current year from 
+        else: #for dates formatted as words
             pass
     
 def createDate(dateString="") -> list:
