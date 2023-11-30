@@ -1,14 +1,11 @@
 import spacy
 from datetime import date
-from dateInfo import monthsofYear
 
 nlp = spacy.load("en_core_web_trf") #loads the pretrained model
 
 def identifyDate(text:str, model: spacy.Language) -> dict:
     '''
     Takes a string and extracts all date information from the string. This function assumes that the given string contains a date with at least a day of the week or a day of a month. If no other date information is given, the function will fill out the rest of the dictionary values with the current date information.
-
-    TODO: need to handle if invalid dates are given
     '''
     doc = model(text)
     dateInfo = []
@@ -38,7 +35,7 @@ def createDate(dateString="") -> list:
     dateStrings should have been parsed out of the original user input by spacy and identified as a DATE entity
     '''
     dateList = []
-    if dateString == "": #might be useful for if user just gives a time but no date
+    if dateString == "":
         today = date.today()
         dateList[0] = int(today.strftime('%d'))
         dateList[1] = int(today.strftime('%m'))
