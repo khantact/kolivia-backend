@@ -46,14 +46,21 @@ def identifyDate(text:str, model: spacy.Language) -> dict:
             else: #then we know the date is formatted as MM/DD, we will assume they mean the current year
                 dateDict['year'] = [(date.today()).year] #gets current year from 
         else: #for dates formatted as words
+            print(aDate[0])
             aDate[0] = aDate[0].upper().strip().split() #capitalizes the date string
-            aDate[0][0] = removeNonAlpha(aDate[0][0])
-            aDate[0][1] = removeNonDigits(aDate[0][1])
-            if len(aDate[0]) == 2: #if no year is provided, we assume this year
-                dateDict['year'] = [(date.today()).year]
-            monthInt = findMonth(aDate[0][0])
-            dateDict['month'] = [monthInt] + months[monthInt]
-            dateDict['day'] = [int(aDate[0][1])]
+            if len(aDate[0]) > 1:
+                aDate[0][0] = removeNonAlpha(aDate[0][0])
+                aDate[0][1] = removeNonDigits(aDate[0][1])
+                if len(aDate[0]) == 2: #if no year is provided, we assume this year
+                    dateDict['year'] = [(date.today()).year]
+                monthInt = findMonth(aDate[0][0])
+                dateDict['month'] = [monthInt] + months[monthInt]
+                dateDict['day'] = [int(aDate[0][1])]
+            else: #if only one word is given, we assume it's a day of the week
+                aDate[0] = aDate[0].upper().strip()
+                #TODO: need to handle when only a day of the week is given
+    #TODO: just realized this doesn't account for if a full date is provided like "Thursday, November 30th, 2023"
+
     # print(dateDict['month'])
     # print(dateDict['day'])
     # print(dateDict['year'])
@@ -173,7 +180,8 @@ def extractWeatherData(text: str, model: spacy.Language) -> list:
 
 def main():
     nlp = spacy.load("en_core_web_trf") #loads the pretrained model
-    identifyDate("I have an appointment on Nov. 12th at 3:00pm", nlp)
-    identifyDate("I have an appointment on 11/12 at 3:00pm", nlp)
+    # identifyDate("I have an appointment on Nov. 30th at 3:00pm", nlp) #works
+    # identifyDate("I have an appointment on 11/30 at 3:00pm", nlp) #works
+    identifyDate("I have an appointment on Thursday at 3:00pm", nlp)
 
 main()

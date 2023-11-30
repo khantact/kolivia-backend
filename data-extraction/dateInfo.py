@@ -4,7 +4,7 @@ daysOfTheWeek = {}
 monthsofYear = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"]
 
 
-daysOfTheWeekAsStrs = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY", "MON", "TUES", "WED", "THURS", "FRI", "SAT", "SUN"]
+daysOfTheWeekAsStrs = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]
 
 months[1] = ["JANUARY", "JAN"]
 months[2] = ["FEBRUARY", "FEB"]
