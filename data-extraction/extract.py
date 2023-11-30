@@ -1,7 +1,6 @@
 import spacy
 from datetime import date
-
-nlp = spacy.load("en_core_web_trf") #loads the pretrained model
+from dateInfo import monthsofYear, months
 
 def identifyDate(text:str, model: spacy.Language) -> dict:
     '''
@@ -11,49 +10,109 @@ def identifyDate(text:str, model: spacy.Language) -> dict:
     dateInfo = []
 
     #extracting only the relevant date related info from the text
+    dateInfo = getDocDateEnts(doc, dateInfo)
+    
+    #now that dateInfo has all the relevant date information, we need to reformat it into the dictionary
+    dateDict = {}
+    for aDate in dateInfo: #iterates by dates as lists of [dateStr, shapeStr]
+        if aDate[0][0].isdigit(): #for dateStrs formatted as digits
+            monthDigits = ""
+            idx = 0
+            while aDate[0][idx] != "/": #iterate by chars in dateStr
+                monthDigits += aDate[0][idx]
+                idx+=1
+            monthDigits = int(monthDigits)
+            if monthDigits > 12 or monthDigits < 1:
+                monthDigits = (date.today()).month #gets current month from datetime if given month is invalid
+            dateDict['month'] = [monthDigits]
+            dateDict['month'] += months[monthDigits] #adds the month names in str form to the value list
+            daysDigits = ""
+            firstSlash = (aDate[0]).find('/') #can assume that dates formatted as digits will at least have mm/dd form
+            for idx2 in range(firstSlash+1, len(aDate[0])):
+                if aDate[0][idx2] != "/": #prevent from going into year part of the date
+                    daysDigits += aDate[0][idx2]
+                else:
+                    secondSlash = idx2
+            daysDigits = int(daysDigits)
+            if daysDigits > 31 or daysDigits < 1:
+                daysDigits = (date.today()).day #gets current day from datetime if given day is invalid (doesn't account for months with less than 31 days)
+            dateDict['day'] = [daysDigits]
+            if aDate[0].count('/') < 1: #then we know the date is formatted as MM/DD/YYYY
+                yearDigits = ""
+                for idx in range(secondSlash+1, len(aDate[0])):
+                    yearDigits += aDate[0][idx]
+                yearDigits = int(yearDigits)
+                dateDict['year'] = [yearDigits]
+            else: #then we know the date is formatted as MM/DD, we will assume they mean the current year
+                dateDict['year'] = [(date.today()).year] #gets current year from 
+        else: #for dates formatted as words
+            aDate[0] = aDate[0].upper().strip().split() #capitalizes the date string
+            aDate[0][0] = removeNonAlpha(aDate[0][0])
+            aDate[0][1] = removeNonDigits(aDate[0][1])
+            if len(aDate[0]) == 2: #if no year is provided, we assume this year
+                dateDict['year'] = [(date.today()).year]
+            monthInt = findMonth(aDate[0][0])
+            dateDict['month'] = [monthInt] + months[monthInt]
+            dateDict['day'] = [int(aDate[0][1])]
+    # print(dateDict['month'])
+    # print(dateDict['day'])
+    # print(dateDict['year'])
+    print(dateDict)
+
+def getDocDateEnts(doc, dateInfo): 
+    '''
+    Gets spacy doc entities, specifically DATE entities, and adds them to the dateInfo list
+    '''
     for ent in doc.ents:
         if ent.label_ == "DATE":
-            for token in doc:
-                dateStr = "" #for storing dates formatted as words because they get separated as tokens
-                shapeStr = "" #for storing the shape of the token for dates formatted as words
+            dateStr = "" #for storing dates formatted as words because they get separated as tokens
+            shapeStr = "" #for storing the shape of the token for dates formatted as words
+            for token in doc:    
                 if token.text == ent.text: #only works for dates formatted as digits
                     dateInfo.append([token.text, token.shape_])
                 elif token.text in ent.text: #for when dates are formatted as words like day and month
                     dateStr += token.text + " "
                     shapeStr += token.shape_ + " "
                 if token.text not in ent.text and dateStr != "": #then we know we've reached the end of the date
-                    dateInfo.append([dateStr.strip(), shapeStr.strip()])
-    
-    #now that dateInfo has all the relevant date information, we need to reformat it into the dictionary
-    dateDict = {}
-    for date in dateInfo:
-        if date[0].isdigit(): #for dates formatted as digits
-            monthDigits = ""
-            for aChar in date:
-                if aChar != "/": 
-                    monthDigits += aChar
-            monthDigits = int(monthDigits)
-            dateDict['month'] = [monthDigits] #TODO: need to populate value list with other forms of the month
+                    dateItem = [dateStr.strip(), shapeStr.strip()] 
+                    if dateItem not in dateInfo: #prevents duplicates
+                        dateInfo.append(dateItem)
+    return dateInfo
 
-            daysDigits = ""
-            for idx in range(date.find('/')+1):
-                if date[idx] != "/": #prevent from going into year part of the date
-                    daysDigits += date[idx]
-                else:
-                    secondSlash = idx
-            daysDigits = int(daysDigits)
-            dateDict['day'] = [daysDigits] #TODO: need to populate value list with other forms of the day
+def findMonth(date:str) -> int:
+    '''
+    Takes in a string and returns the month as an int
+    '''
+    month = 0
+    for monthName in monthsofYear:
+        if date in monthName:
+            month = monthsofYear.index(monthName) + 1
+    if month == 0: #in case given month is invalid
+        month = (date.today()).month
+    return month
 
-            if date.count('/') < 1: #then we know the date is formatted as MM/DD/YYYY
-                yearDigits = ""
-                for idx in range(secondSlash+1, len(date)):
-                    yearDigits += date[idx]
-                yearDigits = int(yearDigits)
-                dateDict['year'] = [yearDigits]
-            else: #then we know the date is formatted as MM/DD, we will assume they mean the current year
-                dateDict['year'] = [(date.today()).year] #gets current year from 
-        else: #for dates formatted as words
-            pass
+def removeNonDigits(date: str) -> str:
+    if date.isdigit():
+        return date
+    onlyDigits = False
+    while not onlyDigits:
+        for char in date:
+            if not char.isdigit():
+                date = date.replace(char, "")
+        onlyDigits = True
+    return date
+
+
+def removeNonAlpha(date: str) -> str:
+    if date.isalpha():
+        return date
+    onlyLetters = False
+    while not onlyLetters:
+        for char in date:
+            if not char.isalpha():
+                date = date.replace(char, "")
+        onlyLetters = True
+    return date
     
 def createDate(dateString="") -> list:
     '''
@@ -112,3 +171,9 @@ def extractWeatherData(text: str, model: spacy.Language) -> list:
     
     #TODO: need to validate the locations are 1) real, 2), if the location is a state or city, 
 
+def main():
+    nlp = spacy.load("en_core_web_trf") #loads the pretrained model
+    identifyDate("I have an appointment on Nov. 12th at 3:00pm", nlp)
+    identifyDate("I have an appointment on 11/12 at 3:00pm", nlp)
+
+main()
