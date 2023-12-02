@@ -1,6 +1,27 @@
 import spacy
 from datetime import date
-from dateInfo import monthsofYear, months
+from dateInfo import monthsofYear, daysOfTheWeekAsStrs, months
+
+
+def isMonth(text:str) -> bool:
+    '''
+    Takes in a string and returns True if the string is a month name
+    '''
+    text = text.upper().strip()
+    for monthName in monthsofYear: #iteratrs thru months (not abbreviated)
+        if text in monthName: #should account for even when month is abbreviated
+            return True
+    return False
+
+def isDay(text:str) -> bool:
+    '''
+    Takes in a string and returns True if the string is a day of the week
+    '''
+    text = text.upper().strip()
+    for dayName in daysOfTheWeekAsStrs: #iterates thru days of the week (not abbreviated)
+        if text in dayName: #should account for even when day is abbreviated
+            return True
+    return False
 
 def identifyDate(text:str, model: spacy.Language) -> dict:
     '''
