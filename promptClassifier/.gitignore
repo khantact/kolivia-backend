@@ -1,2 +1,4 @@
 model/
 distilbert-base-cased-finetuned-appointment-classifications/
+
+data-extraction/__pycache__
